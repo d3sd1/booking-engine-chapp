@@ -81,7 +81,7 @@ class BookingFormExcluded(ModelForm):
         }
 
 
-class EditBookingDatesForm(DateRangeValidationMixin, forms.Form):
+class EditBookingDatesForm(forms.Form):
     checkin = forms.DateField(
         label='Fecha de entrada',
         widget=forms.DateInput(attrs={'type': 'date'}),
@@ -90,3 +90,11 @@ class EditBookingDatesForm(DateRangeValidationMixin, forms.Form):
         label='Fecha de salida',
         widget=forms.DateInput(attrs={'type': 'date'}),
     )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        checkin = cleaned_data.get('checkin')
+        checkout = cleaned_data.get('checkout')
+        if checkin and checkout and checkout <= checkin:
+            raise ValidationError('La fecha de salida debe ser posterior a la fecha de entrada.')
+        return cleaned_data
