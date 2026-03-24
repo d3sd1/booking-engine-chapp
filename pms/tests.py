@@ -322,8 +322,8 @@ class ServiceLayerTests(BaseTestCase):
 
     def test_calculate_total_with_strings(self):
         from .services import calculate_booking_total
-        self.assertEqual(calculate_booking_total(self.room_2_1, self.tomorrow.isoformat(),
-                                                  (self.tomorrow + timedelta(days=3)).isoformat()), 90.0)
+        checkout = (self.tomorrow + timedelta(days=3)).isoformat()
+        self.assertEqual(calculate_booking_total(self.room_2_1, self.tomorrow.isoformat(), checkout), 90.0)
 
     def test_get_available_rooms_filters_by_guests(self):
         from .services import get_available_rooms
@@ -346,21 +346,19 @@ class ServiceLayerTests(BaseTestCase):
 class FormValidationTests(BaseTestCase):
     def test_search_form_rejects_bad_dates(self):
         from .forms import RoomSearchForm
-        form = RoomSearchForm(data={'checkin': self.in_5_days.isoformat(),
-                                     'checkout': self.tomorrow.isoformat(), 'guests': 1})
-        self.assertFalse(form.is_valid())
+        data = {'checkin': self.in_5_days.isoformat(), 'checkout': self.tomorrow.isoformat(), 'guests': 1}
+        self.assertFalse(RoomSearchForm(data=data).is_valid())
 
     def test_search_form_rejects_past_checkin(self):
         from .forms import RoomSearchForm
-        form = RoomSearchForm(data={'checkin': (date.today() - timedelta(days=1)).isoformat(),
-                                     'checkout': self.tomorrow.isoformat(), 'guests': 1})
-        self.assertFalse(form.is_valid())
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        data = {'checkin': yesterday, 'checkout': self.tomorrow.isoformat(), 'guests': 1}
+        self.assertFalse(RoomSearchForm(data=data).is_valid())
 
     def test_search_form_rejects_invalid_guests(self):
         from .forms import RoomSearchForm
-        form = RoomSearchForm(data={'checkin': self.tomorrow.isoformat(),
-                                     'checkout': self.in_3_days.isoformat(), 'guests': 5})
-        self.assertFalse(form.is_valid())
+        data = {'checkin': self.tomorrow.isoformat(), 'checkout': self.in_3_days.isoformat(), 'guests': 5}
+        self.assertFalse(RoomSearchForm(data=data).is_valid())
 
     def test_edit_dates_form_rejects_bad_order(self):
         from .forms import EditBookingDatesForm
