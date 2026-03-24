@@ -9,7 +9,6 @@ Environment-aware configuration via ENVIRONMENT env var:
 """
 
 import os
-import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -93,12 +92,10 @@ USE_TZ = False
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'pms/statics']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# Use manifest storage in deployed environments; plain storage for tests
-# to avoid needing collectstatic before running the test suite
-if 'test' in sys.argv:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-else:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# WhiteNoise serves static files without needing a separate web server.
+# CompressedStaticFilesStorage enables gzip without requiring manifest hashes,
+# avoiding version mismatches between collectstatic build and runtime.
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
