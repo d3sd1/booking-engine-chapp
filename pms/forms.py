@@ -1,11 +1,28 @@
-from datetime import datetime
+from datetime import date, datetime
 from django import forms
-from django.forms import ModelForm
+from django.forms import ModelForm, ValidationError
 
 from .models import Booking, Customer
 
+MAX_GUESTS = 4
 
-class RoomSearchForm(ModelForm):
+
+class DateRangeValidationMixin:
+    """Mixin that validates checkin < checkout and checkin >= today."""
+
+    def clean(self):
+        cleaned_data = super().clean()
+        checkin = cleaned_data.get('checkin')
+        checkout = cleaned_data.get('checkout')
+        if checkin and checkout:
+            if checkout <= checkin:
+                raise ValidationError('La fecha de salida debe ser posterior a la fecha de entrada.')
+            if checkin < date.today():
+                raise ValidationError('La fecha de entrada no puede ser anterior a hoy.')
+        return cleaned_data
+
+
+class RoomSearchForm(DateRangeValidationMixin, ModelForm):
     class Meta:
         model = Booking
         fields = ['checkin', 'checkout', 'guests']
@@ -16,8 +33,14 @@ class RoomSearchForm(ModelForm):
             'checkin': forms.DateInput(attrs={'type': 'date', 'min': datetime.today().strftime('%Y-%m-%d')}),
             'checkout': forms.DateInput(
                 attrs={'type': 'date', 'max': datetime.today().replace(month=12, day=31).strftime('%Y-%m-%d')}),
-            'guests': forms.DateInput(attrs={'type': 'number', 'min': 1, 'max': 4}),
+            'guests': forms.NumberInput(attrs={'min': 1, 'max': MAX_GUESTS}),
         }
+
+    def clean_guests(self):
+        guests = self.cleaned_data.get('guests')
+        if guests is not None and (guests < 1 or guests > MAX_GUESTS):
+            raise ValidationError(f'El número de huéspedes debe estar entre 1 y {MAX_GUESTS}.')
+        return guests
 
 
 class CustomerForm(ModelForm):
@@ -56,3 +79,14 @@ class BookingFormExcluded(ModelForm):
             'total': forms.HiddenInput(),
             'state': forms.HiddenInput(),
         }
+
+
+class EditBookingDatesForm(DateRangeValidationMixin, forms.Form):
+    checkin = forms.DateField(
+        label='Fecha de entrada',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    checkout = forms.DateField(
+        label='Fecha de salida',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
