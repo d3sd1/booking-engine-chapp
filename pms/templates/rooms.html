@@ -2,6 +2,25 @@
 
 {% block content %}
 <h1>Habitaciones del hotel</h1>
+
+<div class="card card-body mb-3">
+    <form method="GET" action="{% url 'rooms' %}" class="d-flex align-items-end gap-2">
+        <div class="flex-grow-1">
+            <label for="room-filter" class="form-label">Filtrar por nombre</label>
+            <input type="text" class="form-control" id="room-filter" name="q"
+                   value="{{ search_query }}" placeholder="Ej: Room 1">
+        </div>
+        <button type="submit" class="btn btn-primary">Buscar</button>
+        {% if search_query %}
+        <a href="{% url 'rooms' %}" class="btn btn-outline-secondary">Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+{% if search_query and rooms|length == 0 %}
+<div class="alert alert-warning">No se encontraron habitaciones para "{{ search_query }}"</div>
+{% endif %}
+
 {% for room in rooms%}
 <div class="row card mt-3 mb-3 hover-card bg-tr-250">
     <div class="col p-3">
@@ -11,9 +30,7 @@
         <div>
             <a href="{% url 'room_details' pk=room.id%}">Ver detalles</a>
         </div>
-        
     </div>
-    
 </div>
 {% endfor %}
 {% endblock content%}
