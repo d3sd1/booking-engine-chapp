@@ -121,11 +121,13 @@ class BookingViewTests(BaseTestCase):
             'booking-checkin': self.tomorrow.isoformat(),
             'booking-checkout': self.in_3_days.isoformat(),
             'booking-guests': 1,
-            'booking-total': 40,
+            'booking-total': 999,  # Intentionally wrong — server must recalculate
             'booking-state': 'NEW',
         })
         self.assertRedirects(response, '/')
-        self.assertTrue(Booking.objects.filter(customer__name='New Guest').exists())
+        booking = Booking.objects.get(customer__name='New Guest')
+        # Total should be server-calculated: 2 days * 20€ = 40, NOT the 999 from POST
+        self.assertEqual(booking.total, 40.0)
 
     def test_post_booking_404_for_invalid_room(self):
         response = self.client.get(reverse('booking', args=[9999]),

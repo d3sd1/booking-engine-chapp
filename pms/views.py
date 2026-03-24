@@ -59,7 +59,7 @@ class RoomSearchView(View):
 
 class HomeView(View):
     def get(self, request):
-        bookings = Booking.objects.all().order_by("-created")
+        bookings = Booking.objects.all().order_by("-created")[:50]
         return render(request, "home.html", {'bookings': bookings})
 
 
@@ -75,12 +75,15 @@ class BookingView(View):
                 messages.error(request, 'No hay disponibilidad para las fechas seleccionadas.')
                 return redirect('/')
 
+            # Recalculate total server-side to prevent price manipulation via hidden fields
+            server_total = calculate_booking_total(room, checkin, checkout)
             customer = customer_form.save()
             temp_POST = request.POST.copy()
             temp_POST.update({
                 'booking-customer': customer.id,
                 'booking-room': pk,
                 'booking-code': generate.get(),
+                'booking-total': server_total,
             })
             booking_form = BookingForm(temp_POST, prefix="booking")
             if booking_form.is_valid():

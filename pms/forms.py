@@ -22,19 +22,24 @@ class DateRangeValidationMixin:
         return cleaned_data
 
 
-class RoomSearchForm(DateRangeValidationMixin, ModelForm):
-    class Meta:
-        model = Booking
-        fields = ['checkin', 'checkout', 'guests']
-        labels = {
-            "guests": "Huéspedes"
-        }
-        widgets = {
-            'checkin': forms.DateInput(attrs={'type': 'date', 'min': datetime.today().strftime('%Y-%m-%d')}),
-            'checkout': forms.DateInput(
-                attrs={'type': 'date', 'max': datetime.today().replace(month=12, day=31).strftime('%Y-%m-%d')}),
-            'guests': forms.NumberInput(attrs={'min': 1, 'max': MAX_GUESTS}),
-        }
+class RoomSearchForm(DateRangeValidationMixin, forms.Form):
+    """Search form for room availability. Uses forms.Form (not ModelForm)
+    because this form drives a search query, not a model create/update."""
+    checkin = forms.DateField(
+        label='Checkin',
+        widget=forms.DateInput(attrs={'type': 'date', 'min': datetime.today().strftime('%Y-%m-%d')}),
+    )
+    checkout = forms.DateField(
+        label='Checkout',
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'max': datetime.today().replace(month=12, day=31).strftime('%Y-%m-%d'),
+        }),
+    )
+    guests = forms.IntegerField(
+        label='Huéspedes',
+        widget=forms.NumberInput(attrs={'min': 1, 'max': MAX_GUESTS}),
+    )
 
     def clean_guests(self):
         guests = self.cleaned_data.get('guests')

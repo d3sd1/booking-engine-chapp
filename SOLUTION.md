@@ -193,14 +193,23 @@ This document describes all changes made to the booking engine project, covering
 
 ---
 
+## Security Considerations
+
+### Server-side total recalculation
+`BookingView.post()` recalculates the booking total server-side via `calculate_booking_total()` instead of trusting the `total` hidden form field from the POST body. This prevents a classic price manipulation vulnerability where a user could submit `total=0` via browser devtools. The test `test_post_creates_booking` explicitly verifies this by sending `total=999` and asserting the server calculates `40.0`.
+
+### TOCTOU window in room search
+Between `RoomSearchView.post()` (shows available rooms) and `BookingView.post()` (creates the booking), another user could book the same room. This is a Time-Of-Check-Time-Of-Use (TOCTOU) race condition. It is mitigated by the `is_room_available()` check in `BookingView.post()` which re-validates availability at save time. The remaining window is acceptable for a single-server deployment. For high-concurrency production, `SELECT FOR UPDATE` or optimistic locking would be needed.
+
+### URL type safety
+All URL patterns use `<int:pk>` instead of `<str:pk>`. This prevents non-numeric IDs from reaching `get_object_or_404()` — the URL resolver rejects them with a clean 404 instead of a 500 server error.
+
 ## Known Technical Debt
 
 | Item | Status | Notes |
 |---|---|---|
-| `Booking.total` uses `FloatField` | Documented as TODO | Should be `DecimalField` to avoid floating-point rounding in pricing |
-| `Room_type` class name | Not changed | PEP 8 recommends `RoomType`, but changing requires migration and affects all references |
-| No pagination on HomeView | Not implemented | `Booking.objects.all()` without limit could be slow with many bookings |
-| No error pages (404, 500) | Not implemented | Listed in original README TODO |
+| `Booking.total` uses `FloatField` | Documented as TODO | Should be `DecimalField(max_digits=10, decimal_places=2)` with `ROUND_HALF_UP` for PCI-DSS compliance and to avoid accumulated rounding errors (e.g., 0.01 differences in invoiced totals) |
+| `Room_type` class name | Not changed | PEP 8 recommends `RoomType`, but changing requires migration and affects all FK references across the codebase |
 
 ---
 
