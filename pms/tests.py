@@ -117,7 +117,7 @@ class BookingViewTests(BaseTestCase):
         response = self.client.post(reverse('booking', args=[self.room_1_1.id]), {
             'customer-name': 'New Guest',
             'customer-email': 'new@guest.com',
-            'customer-phone': '555',
+            'customer-phone': '+34 612 345 555',
             'booking-checkin': self.tomorrow.isoformat(),
             'booking-checkout': self.in_3_days.isoformat(),
             'booking-guests': 1,
@@ -169,7 +169,7 @@ class EditBookingViewTests(BaseTestCase):
         self.client.post(reverse('edit_booking', args=[self.booking.id]), {
             'customer-name': 'Updated Name',
             'customer-email': 'updated@test.com',
-            'customer-phone': '999',
+            'customer-phone': '+34 612 999 999',
         })
         self.customer.refresh_from_db()
         self.assertEqual(self.customer.name, 'Updated Name')
