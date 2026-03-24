@@ -6,7 +6,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .form_dates import Ymd
 from .forms import *
-from .models import Room
+from .models import Booking, Room
 from .reservation_code import generate
 
 
@@ -172,6 +172,49 @@ class EditBookingView(View):
         if customer_form.is_valid():
             customer_form.save()
             return redirect("/")
+
+
+class EditBookingDatesView(View):
+    def get(self, request, pk):
+        booking = Booking.objects.get(id=pk)
+        form = EditBookingDatesForm(initial={
+            'checkin': booking.checkin,
+            'checkout': booking.checkout,
+        })
+        context = {
+            'booking': booking,
+            'form': form,
+        }
+        return render(request, "edit_booking_dates.html", context)
+
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, pk):
+        booking = Booking.objects.get(id=pk)
+        form = EditBookingDatesForm(request.POST)
+        if form.is_valid():
+            new_checkin = form.cleaned_data['checkin']
+            new_checkout = form.cleaned_data['checkout']
+            # Check room availability excluding the current booking
+            conflicting = Booking.objects.filter(
+                room=booking.room,
+                state=Booking.NEW,
+                checkin__lt=new_checkout,
+                checkout__gt=new_checkin,
+            ).exclude(id=booking.id)
+            if conflicting.exists():
+                form.add_error(None, 'No hay disponibilidad para las fechas seleccionadas.')
+            else:
+                total_days = (new_checkout - new_checkin).days
+                booking.checkin = new_checkin
+                booking.checkout = new_checkout
+                booking.total = total_days * booking.room.room_type.price
+                booking.save()
+                return redirect('/')
+        context = {
+            'booking': booking,
+            'form': form,
+        }
+        return render(request, "edit_booking_dates.html", context)
 
 
 class DashboardView(View):
