@@ -33,6 +33,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
+      - ENVIRONMENT=local
       - SECRET_KEY=dev-only-insecure-key-change-in-production
       - DEBUG=True
       - ALLOWED_HOSTS=*
