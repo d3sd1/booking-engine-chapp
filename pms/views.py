@@ -14,8 +14,6 @@ from .forms import (
     EditBookingDatesForm,
     RoomSearchForm,
 )
-from .form_dates import Ymd
-from .forms import *
 from .models import Booking, Room
 from .reservation_code import generate
 from .services import calculate_booking_total, get_available_rooms, is_room_available
@@ -70,7 +68,6 @@ class BookingView(View):
     def post(self, request, pk):
         customer_form = CustomerForm(request.POST, prefix="customer")
         if customer_form.is_valid():
-            # Verify room availability before saving
             room = get_object_or_404(Room, id=pk)
             checkin = request.POST.get('booking-checkin')
             checkout = request.POST.get('booking-checkout')
@@ -88,7 +85,6 @@ class BookingView(View):
                 'booking-code': generate.get(),
                 'booking-total': server_total,
             })
-                'booking-code': generate.get()})
             booking_form = BookingForm(temp_POST, prefix="booking")
             if booking_form.is_valid():
                 booking_form.save()
@@ -114,10 +110,6 @@ class DeleteBookingView(View):
     def get(self, request, pk):
         booking = get_object_or_404(Booking, id=pk)
         return render(request, "delete_booking.html", {'booking': booking})
-        context = {
-            'booking': booking
-        }
-        return render(request, "delete_booking.html", context)
 
     def post(self, request, pk):
         Booking.objects.filter(id=pk).update(state=Booking.DELETED)
@@ -176,49 +168,6 @@ class EditBookingDatesView(View):
         return render(request, "edit_booking_dates.html", {'booking': booking, 'form': form})
 
 
-class EditBookingDatesView(View):
-    def get(self, request, pk):
-        booking = Booking.objects.get(id=pk)
-        form = EditBookingDatesForm(initial={
-            'checkin': booking.checkin,
-            'checkout': booking.checkout,
-        })
-        context = {
-            'booking': booking,
-            'form': form,
-        }
-        return render(request, "edit_booking_dates.html", context)
-
-    @method_decorator(ensure_csrf_cookie)
-    def post(self, request, pk):
-        booking = Booking.objects.get(id=pk)
-        form = EditBookingDatesForm(request.POST)
-        if form.is_valid():
-            new_checkin = form.cleaned_data['checkin']
-            new_checkout = form.cleaned_data['checkout']
-            # Check room availability excluding the current booking
-            conflicting = Booking.objects.filter(
-                room=booking.room,
-                state=Booking.NEW,
-                checkin__lt=new_checkout,
-                checkout__gt=new_checkin,
-            ).exclude(id=booking.id)
-            if conflicting.exists():
-                form.add_error(None, 'No hay disponibilidad para las fechas seleccionadas.')
-            else:
-                total_days = (new_checkout - new_checkin).days
-                booking.checkin = new_checkin
-                booking.checkout = new_checkout
-                booking.total = total_days * booking.room.room_type.price
-                booking.save()
-                return redirect('/')
-        context = {
-            'booking': booking,
-            'form': form,
-        }
-        return render(request, "edit_booking_dates.html", context)
-
-
 class DashboardView(View):
     def get(self, request):
         today = date.today()
@@ -233,8 +182,6 @@ class DashboardView(View):
                     .filter(checkin=today)
                     .exclude(state=Booking.DELETED)
                     .count())
-                    .values("id")
-                    ).count()
 
         outcoming = (Booking.objects
                      .filter(checkout=today)
@@ -251,32 +198,12 @@ class DashboardView(View):
         confirmed_bookings = Booking.objects.filter(state=Booking.NEW).count()
         occupancy_pct = (confirmed_bookings / total_rooms * 100) if total_rooms > 0 else 0
 
-                     .values("id")
-                     ).count()
-
-        # get total invoiced today
-        invoiced = (Booking.objects
-                    .filter(created__range=today_range)
-                    .exclude(state=Booking.DELETED)
-                    .aggregate(Sum('total'))
-                    )
-
-        # Calculate occupancy: confirmed bookings (state=NEW) / total rooms
-        total_rooms = Room.objects.count()
-        confirmed_bookings = Booking.objects.filter(state=Booking.NEW).count()
-        occupancy_pct = (confirmed_bookings / total_rooms * 100) if total_rooms > 0 else 0
-
-        # preparing context data
         dashboard = {
             'new_bookings': new_bookings,
             'incoming_guests': incoming,
             'outcoming_guests': outcoming,
             'invoiced': invoiced,
             'occupancy_pct': occupancy_pct,
-        }
-
-        context = {
-            'dashboard': dashboard
         }
         return render(request, "dashboard.html", {'dashboard': dashboard})
 
@@ -286,14 +213,6 @@ class RoomDetailsView(View):
         room = get_object_or_404(Room, id=pk)
         bookings = room.booking_set.all()
         return render(request, "room_detail.html", {'room': room, 'bookings': bookings})
-        # renders room details
-        room = get_object_or_404(Room, id=pk)
-        bookings = room.booking_set.all()
-        context = {
-            'room': room,
-            'bookings': bookings,
-        }
-        return render(request, "room_detail.html", context)
 
 
 class RoomsView(View):
@@ -304,8 +223,3 @@ class RoomsView(View):
             rooms = rooms.filter(name__icontains=query)
         rooms = rooms.values("name", "room_type__name", "id")
         return render(request, "rooms.html", {'rooms': rooms, 'search_query': query})
-        context = {
-            'rooms': rooms,
-            'search_query': query,
-        }
-        return render(request, "rooms.html", context)
