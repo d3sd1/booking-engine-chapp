@@ -1,5 +1,7 @@
+from datetime import date, datetime, time
+
 from django.db.models import F, Q, Count, Sum
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -11,7 +13,7 @@ from .forms import (
     CustomerForm,
     RoomSearchForm,
 )
-from .models import Room
+from .models import Booking, Room
 from .reservation_code import generate
 
 
@@ -19,7 +21,7 @@ class BookingSearchView(View):
     # renders search results for bookingings
     def get(self, request):
         query = request.GET.dict()
-        if (not "filter" in query):
+        if "filter" not in query:
             return redirect("/")
         bookings = (Booking.objects
                     .filter(Q(code__icontains=query['filter']) | Q(customer__name__icontains=query['filter']))
@@ -57,7 +59,7 @@ class RoomSearchView(View):
         exclude = {
             'booking__checkin__lte': query['checkout'],
             'booking__checkout__gte': query['checkin'],
-            'booking__state__exact': "NEW"
+            'booking__state__exact': Booking.NEW
         }
         rooms = (Room.objects
                  .filter(**filters)
@@ -123,7 +125,7 @@ class BookingView(View):
         # The second form is for the customer information
 
         query = request.GET.dict()
-        room = Room.objects.get(id=pk)
+        room = get_object_or_404(Room, id=pk)
         checkin = Ymd.Ymd(query['checkin'])
         checkout = Ymd.Ymd(query['checkout'])
         total_days = checkout - checkin
@@ -144,7 +146,7 @@ class BookingView(View):
 class DeleteBookingView(View):
     # renders the booking deletion form
     def get(self, request, pk):
-        booking = Booking.objects.get(id=pk)
+        booking = get_object_or_404(Booking, id=pk)
         context = {
             'booking': booking
         }
@@ -152,14 +154,14 @@ class DeleteBookingView(View):
 
     # deletes the booking
     def post(self, request, pk):
-        Booking.objects.filter(id=pk).update(state="DEL")
+        Booking.objects.filter(id=pk).update(state=Booking.DELETED)
         return redirect("/")
 
 
 class EditBookingView(View):
     # renders the booking edition form
     def get(self, request, pk):
-        booking = Booking.objects.get(id=pk)
+        booking = get_object_or_404(Booking, id=pk)
         booking_form = BookingForm(prefix="booking", instance=booking)
         customer_form = CustomerForm(prefix="customer", instance=booking.customer)
         context = {
@@ -172,7 +174,7 @@ class EditBookingView(View):
     # updates the customer form
     @method_decorator(ensure_csrf_cookie)
     def post(self, request, pk):
-        booking = Booking.objects.get(id=pk)
+        booking = get_object_or_404(Booking, id=pk)
         customer_form = CustomerForm(request.POST, prefix="customer", instance=booking.customer)
         if customer_form.is_valid():
             customer_form.save()
@@ -181,7 +183,6 @@ class EditBookingView(View):
 
 class DashboardView(View):
     def get(self, request):
-        from datetime import date, time, datetime
         today = date.today()
 
         # get bookings created today
@@ -196,21 +197,21 @@ class DashboardView(View):
         # get incoming guests
         incoming = (Booking.objects
                     .filter(checkin=today)
-                    .exclude(state="DEL")
+                    .exclude(state=Booking.DELETED)
                     .values("id")
                     ).count()
 
         # get outcoming guests
         outcoming = (Booking.objects
                      .filter(checkout=today)
-                     .exclude(state="DEL")
+                     .exclude(state=Booking.DELETED)
                      .values("id")
                      ).count()
 
         # get outcoming guests
         invoiced = (Booking.objects
                     .filter(created__range=today_range)
-                    .exclude(state="DEL")
+                    .exclude(state=Booking.DELETED)
                     .aggregate(Sum('total'))
                     )
 
@@ -232,7 +233,7 @@ class DashboardView(View):
 class RoomDetailsView(View):
     def get(self, request, pk):
         # renders room details
-        room = Room.objects.get(id=pk)
+        room = get_object_or_404(Room, id=pk)
         bookings = room.booking_set.all()
         context = {
             'room': room,
