@@ -5,7 +5,12 @@ from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .form_dates import Ymd
-from .forms import *
+from .forms import (
+    BookingForm,
+    BookingFormExcluded,
+    CustomerForm,
+    RoomSearchForm,
+)
 from .models import Room
 from .reservation_code import generate
 
@@ -231,8 +236,8 @@ class RoomDetailsView(View):
         bookings = room.booking_set.all()
         context = {
             'room': room,
-            'bookings': bookings}
-        print(context)
+            'bookings': bookings,
+        }
         return render(request, "room_detail.html", context)
 
 
