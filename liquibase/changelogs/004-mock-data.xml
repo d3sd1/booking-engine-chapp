@@ -5,14 +5,12 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
-    <!-- ================================================================= -->
-    <!-- DML: Mock data — ONLY runs in 'local' and 'preprod' contexts      -->
-    <!-- Usage: liquibase --contexts=local update                          -->
-    <!--        liquibase --contexts=preprod update                        -->
-    <!-- Production and staging skip this changeset entirely               -->
-    <!-- ================================================================= -->
+    <!--
+        DML: Mock data. ONLY runs in 'local' and 'preprod' contexts.
+        Usage: liquibase update (with contexts=local or contexts=preprod)
+        Production and staging skip these changesets entirely.
+    -->
 
-    <!-- Mock customers -->
     <changeSet id="004-01" author="andrei.garcia" context="local,preprod">
         <comment>Mock customers for local development and preprod testing</comment>
         <insert tableName="pms_customer">
@@ -41,11 +39,9 @@
         </insert>
     </changeSet>
 
-    <!-- Mock bookings: active reservations -->
     <changeSet id="004-02" author="andrei.garcia" context="local,preprod">
         <comment>Mock bookings: mix of confirmed and cancelled for realistic testing</comment>
 
-        <!-- Confirmed bookings -->
         <insert tableName="pms_booking">
             <column name="state" value="NEW"/>
             <column name="checkin" valueDate="2026-04-01"/>
@@ -87,7 +83,6 @@
             <column name="code" value="MOCK0004"/>
         </insert>
 
-        <!-- Cancelled booking for testing filters -->
         <insert tableName="pms_booking">
             <column name="state" value="DEL"/>
             <column name="checkin" valueDate="2026-03-15"/>
@@ -99,7 +94,6 @@
             <column name="code" value="MOCK0005"/>
         </insert>
 
-        <!-- Overlapping booking for availability conflict testing -->
         <insert tableName="pms_booking">
             <column name="state" value="NEW"/>
             <column name="checkin" valueDate="2026-04-03"/>
