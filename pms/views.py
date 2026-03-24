@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 
-from django.db.models import F, Q, Count, Sum
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -15,6 +15,7 @@ from .forms import (
 )
 from .models import Booking, Room
 from .reservation_code import generate
+from .services import calculate_booking_total, get_available_rooms, is_room_available
 
 
 class BookingSearchView(View):
@@ -48,43 +49,18 @@ class RoomSearchView(View):
     # renders the search results of available rooms by date and guests
     def post(self, request):
         query = request.POST.dict()
-        # calculate number of days in the hotel
-        checkin = Ymd.Ymd(query['checkin'])
-        checkout = Ymd.Ymd(query['checkout'])
-        total_days = checkout - checkin
-        # get available rooms and total according to dates and guests
-        filters = {
-            'room_type__max_guests__gte': query['guests']
-        }
-        exclude = {
-            'booking__checkin__lte': query['checkout'],
-            'booking__checkout__gte': query['checkin'],
-            'booking__state__exact': Booking.NEW
-        }
-        rooms = (Room.objects
-                 .filter(**filters)
-                 .exclude(**exclude)
-                 .annotate(total=total_days * F('room_type__price'))
-                 .order_by("room_type__max_guests", "name")
-                 )
-        total_rooms = (Room.objects
-                       .filter(**filters)
-                       .values("room_type__name", "room_type")
-                       .exclude(**exclude)
-                       .annotate(total=Count('room_type'))
-                       .order_by("room_type__max_guests"))
-        # prepare context data for template
-        data = {
-            'total_days': total_days
-        }
-        # pass the actual url query to the template
+        rooms, total_rooms, total_days = get_available_rooms(
+            checkin=query['checkin'],
+            checkout=query['checkout'],
+            guests=query['guests'],
+        )
         url_query = request.POST.urlencode()
         context = {
             "rooms": rooms,
             "total_rooms": total_rooms,
             "query": query,
             "url_query": url_query,
-            "data": data
+            "data": {"total_days": total_days},
         }
         return render(request, "search.html", context)
 
@@ -102,35 +78,30 @@ class HomeView(View):
 class BookingView(View):
     @method_decorator(ensure_csrf_cookie)
     def post(self, request, pk):
-        # check if customer form is ok
         customer_form = CustomerForm(request.POST, prefix="customer")
         if customer_form.is_valid():
-            # save customer data
+            # Verify room availability before saving
+            room = get_object_or_404(Room, id=pk)
+            checkin = request.POST.get('booking-checkin')
+            checkout = request.POST.get('booking-checkout')
+            if not is_room_available(room, checkin, checkout):
+                return redirect('/')
+
             customer = customer_form.save()
-            # add the customer id to the booking form
             temp_POST = request.POST.copy()
             temp_POST.update({
                 'booking-customer': customer.id,
                 'booking-room': pk,
                 'booking-code': generate.get()})
-            # if ok, save booking data
             booking_form = BookingForm(temp_POST, prefix="booking")
             if booking_form.is_valid():
                 booking_form.save()
         return redirect('/')
 
     def get(self, request, pk):
-        # renders the form for booking confirmation.
-        # It returns 2 forms, the one with the booking info is hidden
-        # The second form is for the customer information
-
         query = request.GET.dict()
         room = get_object_or_404(Room, id=pk)
-        checkin = Ymd.Ymd(query['checkin'])
-        checkout = Ymd.Ymd(query['checkout'])
-        total_days = checkout - checkin
-        total = total_days * room.room_type.price  # total amount to be paid
-        query['total'] = total
+        query['total'] = calculate_booking_total(room, query['checkin'], query['checkout'])
         url_query = request.GET.urlencode()
         booking_form = BookingFormExcluded(prefix="booking", initial=query)
         customer_form = CustomerForm(prefix="customer")
