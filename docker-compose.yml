@@ -8,7 +8,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U booking"]
+      test: ["CMD-SHELL", "pg_isready -U booking -d booking_engine"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -39,8 +39,9 @@ services:
       - ALLOWED_HOSTS=*
       - DATABASE_URL=postgres://booking:booking_secret@db:5432/booking_engine
     command: >
-      sh -c "python manage.py migrate --noinput &&
-             gunicorn chapp.wsgi:application --bind 0.0.0.0:8000 --workers 3 --reload"
+      sh -c "python manage.py migrate pms --fake --noinput &&
+             python manage.py migrate --noinput &&
+             gunicorn chapp.wsgi:application --bind 0.0.0.0:8000 --workers 2 --reload"
     volumes:
       - .:/code
     ports:
