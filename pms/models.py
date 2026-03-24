@@ -47,7 +47,7 @@ class Booking(models.Model):
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True)
     guests = models.IntegerField()
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True)
-    total = models.FloatField()
+    total = models.FloatField()  # TODO: migrate to DecimalField to avoid floating-point rounding in pricing
     code = models.CharField(max_length=8)
     created = models.DateTimeField(auto_now_add=True)
 
