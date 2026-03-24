@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="002-01" author="andrei.garcia">
+        <comment>Index on booking dates for availability queries (most frequent operation)</comment>
+        <createIndex tableName="pms_booking" indexName="idx_booking_checkin_checkout">
+            <column name="checkin"/>
+            <column name="checkout"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="002-02" author="andrei.garcia">
+        <comment>Index on booking state for filtering confirmed/cancelled</comment>
+        <createIndex tableName="pms_booking" indexName="idx_booking_state">
+            <column name="state"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="002-03" author="andrei.garcia">
+        <comment>Index on booking code for locator search</comment>
+        <createIndex tableName="pms_booking" indexName="idx_booking_code">
+            <column name="code"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="002-04" author="andrei.garcia">
+        <comment>Index on booking room_id for availability lookups per room</comment>
+        <createIndex tableName="pms_booking" indexName="idx_booking_room_id">
+            <column name="room_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="002-05" author="andrei.garcia">
+        <comment>Index on booking created for dashboard date range queries</comment>
+        <createIndex tableName="pms_booking" indexName="idx_booking_created">
+            <column name="created"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="002-06" author="andrei.garcia">
+        <comment>Index on room name for room filter search</comment>
+        <createIndex tableName="pms_room" indexName="idx_room_name">
+            <column name="name"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

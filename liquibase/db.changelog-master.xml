@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- DDL: Schema definition -->
+    <include file="changelogs/001-create-schema.xml" relativeToChangelogFile="true"/>
+
+    <!-- DDL: Indexes for performance -->
+    <include file="changelogs/002-add-indexes.xml" relativeToChangelogFile="true"/>
+
+    <!-- DML: Seed data (room types and rooms) -->
+    <include file="changelogs/003-seed-room-data.xml" relativeToChangelogFile="true"/>
+
+    <!-- DML: Mock data for local/preprod environments -->
+    <include file="changelogs/004-mock-data.xml" relativeToChangelogFile="true"/>
+
+</databaseChangeLog>

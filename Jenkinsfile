@@ -99,6 +99,37 @@ pipeline {
             }
         }
 
+        stage('Liquibase Migrations') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'staging'
+                    branch 'preprod'
+                    branch 'main'
+                }
+            }
+            steps {
+                script {
+                    def contextMap = [
+                        'develop': 'local',
+                        'staging': 'staging',
+                        'preprod': 'preprod',
+                        'main'   : 'production',
+                    ]
+                    def ctx = contextMap[env.BRANCH_NAME]
+                    sh """
+                        docker run --rm \
+                            -v \$(pwd)/liquibase:/liquibase/changelog \
+                            liquibase/liquibase:4.24 \
+                            --changeLogFile=changelog/db.changelog-master.xml \
+                            --url=\${DATABASE_URL} \
+                            --contexts=${ctx} \
+                            update
+                    """
+                }
+            }
+        }
+
         stage('Deploy to Development') {
             when { branch 'develop' }
             steps {
