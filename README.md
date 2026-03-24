@@ -1,5 +1,5 @@
 
-# PMS 
+# PMS
 
 A small open-source PMS app made with Django.
 
@@ -15,9 +15,15 @@ A small open-source PMS app made with Django.
 - Create, delete and check bookings for each room
 - Check room availability
 - Find bookings by code or customer name
-- Dashboard with bookings, incoming and outcoming customers, total invoiced
+- Dashboard with bookings, incoming and outcoming customers, total invoiced and occupancy percentage
 - Get detailed information about each room
 - Edit customer information
+- Edit booking dates with availability validation
+- Filter rooms by name
+- Server-side date validation (checkin >= today, checkout > checkin)
+- Availability check before saving new bookings
+- Service layer for business logic (availability, pricing)
+- CI pipeline with tests, lint and coverage
 
 ## Local Deployment
 
@@ -26,7 +32,7 @@ To deploy this project locally run
 
 ### Using Docker
 ```bash
-    docker compose -f docker-compose.yml up
+    docker compose up --build
 ```
 
 ### Using Virtualenv
@@ -35,15 +41,13 @@ To deploy this project locally run
     pip install virtualenv
     virtualenv pms
     source pms/bin/activate
-    pip install django
-    git clone https://github.com/vsa-ok/chapp_pms
-    cd chapp_pms
-    pipenv sync
+    pip install -r requirements.txt
+    python manage.py migrate
     python manage.py runserver
 ```
 
 ### Django admin (/admin)
-Use for username and password for superuser is "admin" (without quotes).Remember to change it.
+Use for username and password for superuser is "admin" (without quotes). Remember to change it.
 
 ### Warnings
 - SECRET_KEY should be stored in .env file for production!
@@ -52,13 +56,8 @@ Use for username and password for superuser is "admin" (without quotes).Remember
 ## TODO List / Improvements
 
 - Handle and create error pages
-- Validate dates for checkin/checkout in serverside
-- Check for room availability exactly before save data in DB
 - Change date or define date range in dashboard
-- Improve and add more data in dashboard
 
 
 ## License
 [![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://choosealicense.com/licenses/mit/)
-
-

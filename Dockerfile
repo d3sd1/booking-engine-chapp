@@ -1,21 +1,15 @@
-FROM python:latest
+FROM python:3.11-slim
 
-ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE="chapp.settings"
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=chapp.settings
 
-RUN mkdir /code
 WORKDIR /code
 
-RUN pip install --upgrade pip
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install requirements
-ADD requirements.txt /code/
-RUN pip install -r requirements.txt
+COPY . .
 
-# Install debugpy for python debugging in VS code
-RUN pip install debugpy -t /tmp
+RUN python manage.py collectstatic --noinput
 
-ADD . /code/
-
-# create unprivileged user
-RUN adduser --disabled-password --gecos '' myuser
+EXPOSE 8000
