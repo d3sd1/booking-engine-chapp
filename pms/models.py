@@ -1,12 +1,17 @@
+from django.core.validators import RegexValidator
 from django.db import models
 
 
-# Create your models here.
+phone_validator = RegexValidator(
+    regex=r'^\+?[\d\s\-]{7,20}$',
+    message='Formato de teléfono no válido. Ejemplo: +34 612 345 678'
+)
+
 
 class Customer(models.Model):
     name = models.CharField(max_length=200)
     email = models.EmailField()
-    phone = models.CharField(max_length=50)  # TODO:ADD REGEX FOR PHONE VALIDATION
+    phone = models.CharField(max_length=50, validators=[phone_validator])
 
     def __str__(self):
         return self.name

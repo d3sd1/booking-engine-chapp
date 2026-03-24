@@ -40,11 +40,14 @@ class RoomSearchView(View):
         return render(request, "booking_search_form.html", {'form': form})
 
     def post(self, request):
+        form = RoomSearchForm(request.POST)
+        if not form.is_valid():
+            return render(request, "booking_search_form.html", {'form': form})
         query = request.POST.dict()
         rooms, total_rooms, total_days = get_available_rooms(
-            checkin=query['checkin'],
-            checkout=query['checkout'],
-            guests=query['guests'],
+            checkin=form.cleaned_data['checkin'],
+            checkout=form.cleaned_data['checkout'],
+            guests=form.cleaned_data['guests'],
         )
         url_query = request.POST.urlencode()
         context = {

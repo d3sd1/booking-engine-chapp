@@ -6,3 +6,4 @@ venv/
 staticfiles/
 *.pdf
 .coverage
+db.sqlite3
