@@ -5,5 +5,4 @@ __pycache__/
 venv/
 staticfiles/
 *.pdf
-.claude/
 .coverage
