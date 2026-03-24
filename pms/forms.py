@@ -1,6 +1,6 @@
 from datetime import datetime
 from django import forms
-from django.forms import ModelForm
+from django.forms import ModelForm, ValidationError
 
 from .models import Booking, Customer
 
@@ -56,3 +56,22 @@ class BookingFormExcluded(ModelForm):
             'total': forms.HiddenInput(),
             'state': forms.HiddenInput(),
         }
+
+
+class EditBookingDatesForm(forms.Form):
+    checkin = forms.DateField(
+        label='Fecha de entrada',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    checkout = forms.DateField(
+        label='Fecha de salida',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        checkin = cleaned_data.get('checkin')
+        checkout = cleaned_data.get('checkout')
+        if checkin and checkout and checkout <= checkin:
+            raise ValidationError('La fecha de salida debe ser posterior a la fecha de entrada.')
+        return cleaned_data
