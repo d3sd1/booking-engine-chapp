@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- ========================================= -->
+    <!-- DML: Room types (runs in ALL environments) -->
+    <!-- ========================================= -->
+    <changeSet id="003-01" author="andrei.garcia">
+        <comment>Seed room types: 4 types as per business spec</comment>
+        <insert tableName="pms_room_type">
+            <column name="id" valueNumeric="1"/>
+            <column name="name" value="Individual"/>
+            <column name="price" valueNumeric="20"/>
+            <column name="max_guests" valueNumeric="1"/>
+        </insert>
+        <insert tableName="pms_room_type">
+            <column name="id" valueNumeric="2"/>
+            <column name="name" value="Doble"/>
+            <column name="price" valueNumeric="30"/>
+            <column name="max_guests" valueNumeric="2"/>
+        </insert>
+        <insert tableName="pms_room_type">
+            <column name="id" valueNumeric="3"/>
+            <column name="name" value="Triple"/>
+            <column name="price" valueNumeric="40"/>
+            <column name="max_guests" valueNumeric="3"/>
+        </insert>
+        <insert tableName="pms_room_type">
+            <column name="id" valueNumeric="4"/>
+            <column name="name" value="Cuádruple"/>
+            <column name="price" valueNumeric="50"/>
+            <column name="max_guests" valueNumeric="4"/>
+        </insert>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- DML: Rooms (10 individual, 5 double, 4 triple, 6 quad) -->
+    <!-- ===================================================== -->
+    <changeSet id="003-02" author="andrei.garcia">
+        <comment>Seed rooms: 25 rooms as per business spec</comment>
+
+        <!-- 10 Individual rooms -->
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.1"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.2"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.3"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.4"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.5"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.6"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.7"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.8"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.9"/><column name="description" value="Habitación individual"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="1"/><column name="name" value="Room 1.10"/><column name="description" value="Habitación individual"/></insert>
+
+        <!-- 5 Double rooms -->
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="2"/><column name="name" value="Room 2.1"/><column name="description" value="Habitación doble"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="2"/><column name="name" value="Room 2.2"/><column name="description" value="Habitación doble"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="2"/><column name="name" value="Room 2.3"/><column name="description" value="Habitación doble"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="2"/><column name="name" value="Room 2.4"/><column name="description" value="Habitación doble"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="2"/><column name="name" value="Room 2.5"/><column name="description" value="Habitación doble"/></insert>
+
+        <!-- 4 Triple rooms -->
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="3"/><column name="name" value="Room 3.1"/><column name="description" value="Habitación triple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="3"/><column name="name" value="Room 3.2"/><column name="description" value="Habitación triple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="3"/><column name="name" value="Room 3.3"/><column name="description" value="Habitación triple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="3"/><column name="name" value="Room 3.4"/><column name="description" value="Habitación triple"/></insert>
+
+        <!-- 6 Quadruple rooms -->
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="4"/><column name="name" value="Room 4.1"/><column name="description" value="Habitación cuádruple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="4"/><column name="name" value="Room 4.2"/><column name="description" value="Habitación cuádruple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="4"/><column name="name" value="Room 4.3"/><column name="description" value="Habitación cuádruple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="4"/><column name="name" value="Room 4.4"/><column name="description" value="Habitación cuádruple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="4"/><column name="name" value="Room 4.5"/><column name="description" value="Habitación cuádruple"/></insert>
+        <insert tableName="pms_room"><column name="room_type_id" valueNumeric="4"/><column name="name" value="Room 4.6"/><column name="description" value="Habitación cuádruple"/></insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -4,3 +4,7 @@ __pycache__/
 .git/
 staticfiles/
 *.pdf
+.env
+coverage.xml
+test-results.xml
+htmlcov/

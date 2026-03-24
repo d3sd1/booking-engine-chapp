@@ -7,6 +7,13 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 
+from .forms import (
+    BookingForm,
+    BookingFormExcluded,
+    CustomerForm,
+    EditBookingDatesForm,
+    RoomSearchForm,
+)
 from .form_dates import Ymd
 from .forms import *
 from .models import Booking, Room
@@ -15,7 +22,6 @@ from .services import calculate_booking_total, get_available_rooms, is_room_avai
 
 
 class BookingSearchView(View):
-    # renders search results for bookingings
     def get(self, request):
         query = request.GET.dict()
         if "filter" not in query:
@@ -23,26 +29,18 @@ class BookingSearchView(View):
         bookings = (Booking.objects
                     .filter(Q(code__icontains=query['filter']) | Q(customer__name__icontains=query['filter']))
                     .order_by("-created"))
-        room_search_form = RoomSearchForm()
         context = {
             'bookings': bookings,
-            'form': room_search_form,
-            'filter': True
+            'filter': True,
         }
         return render(request, "home.html", context)
 
 
 class RoomSearchView(View):
-    # renders the search form
     def get(self, request):
-        room_search_form = RoomSearchForm()
-        context = {
-            'form': room_search_form
-        }
+        form = RoomSearchForm()
+        return render(request, "booking_search_form.html", {'form': form})
 
-        return render(request, "booking_search_form.html", context)
-
-    # renders the search results of available rooms by date and guests
     def post(self, request):
         query = request.POST.dict()
         rooms, total_rooms, total_days = get_available_rooms(
@@ -62,13 +60,9 @@ class RoomSearchView(View):
 
 
 class HomeView(View):
-    # renders home page with all the bookingings order by date of creation
     def get(self, request):
-        bookings = Booking.objects.all().order_by("-created")
-        context = {
-            'bookings': bookings
-        }
-        return render(request, "home.html", context)
+        bookings = Booking.objects.all().order_by("-created")[:50]
+        return render(request, "home.html", {'bookings': bookings})
 
 
 class BookingView(View):
@@ -84,11 +78,16 @@ class BookingView(View):
                 messages.error(request, 'No hay disponibilidad para las fechas seleccionadas.')
                 return redirect('/')
 
+            # Recalculate total server-side to prevent price manipulation via hidden fields
+            server_total = calculate_booking_total(room, checkin, checkout)
             customer = customer_form.save()
             temp_POST = request.POST.copy()
             temp_POST.update({
                 'booking-customer': customer.id,
                 'booking-room': pk,
+                'booking-code': generate.get(),
+                'booking-total': server_total,
+            })
                 'booking-code': generate.get()})
             booking_form = BookingForm(temp_POST, prefix="booking")
             if booking_form.is_valid():
@@ -106,40 +105,36 @@ class BookingView(View):
             "url_query": url_query,
             "room": room,
             "booking_form": booking_form,
-            "customer_form": customer_form
+            "customer_form": customer_form,
         }
         return render(request, "booking.html", context)
 
 
 class DeleteBookingView(View):
-    # renders the booking deletion form
     def get(self, request, pk):
         booking = get_object_or_404(Booking, id=pk)
+        return render(request, "delete_booking.html", {'booking': booking})
         context = {
             'booking': booking
         }
         return render(request, "delete_booking.html", context)
 
-    # deletes the booking
     def post(self, request, pk):
         Booking.objects.filter(id=pk).update(state=Booking.DELETED)
         return redirect("/")
 
 
 class EditBookingView(View):
-    # renders the booking edition form
     def get(self, request, pk):
         booking = get_object_or_404(Booking, id=pk)
         booking_form = BookingForm(prefix="booking", instance=booking)
         customer_form = CustomerForm(prefix="customer", instance=booking.customer)
         context = {
             'booking_form': booking_form,
-            'customer_form': customer_form
-
+            'customer_form': customer_form,
         }
         return render(request, "edit_booking.html", context)
 
-    # updates the customer form
     @method_decorator(ensure_csrf_cookie)
     def post(self, request, pk):
         booking = get_object_or_404(Booking, id=pk)
@@ -147,6 +142,38 @@ class EditBookingView(View):
         if customer_form.is_valid():
             customer_form.save()
             return redirect("/")
+        context = {
+            'booking_form': BookingForm(prefix="booking", instance=booking),
+            'customer_form': customer_form,
+        }
+        return render(request, "edit_booking.html", context)
+
+
+class EditBookingDatesView(View):
+    def get(self, request, pk):
+        booking = get_object_or_404(Booking, id=pk)
+        form = EditBookingDatesForm(initial={
+            'checkin': booking.checkin,
+            'checkout': booking.checkout,
+        })
+        return render(request, "edit_booking_dates.html", {'booking': booking, 'form': form})
+
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, pk):
+        booking = get_object_or_404(Booking, id=pk)
+        form = EditBookingDatesForm(request.POST)
+        if form.is_valid():
+            new_checkin = form.cleaned_data['checkin']
+            new_checkout = form.cleaned_data['checkout']
+            if not is_room_available(booking.room, new_checkin, new_checkout, exclude_booking_id=booking.id):
+                form.add_error(None, 'No hay disponibilidad para las fechas seleccionadas.')
+            else:
+                booking.checkin = new_checkin
+                booking.checkout = new_checkout
+                booking.total = calculate_booking_total(booking.room, new_checkin, new_checkout)
+                booking.save()
+                return redirect('/')
+        return render(request, "edit_booking_dates.html", {'booking': booking, 'form': form})
 
 
 class EditBookingDatesView(View):
@@ -196,26 +223,34 @@ class DashboardView(View):
     def get(self, request):
         today = date.today()
 
-        # get bookings created today
         today_min = datetime.combine(today, time.min)
         today_max = datetime.combine(today, time.max)
         today_range = (today_min, today_max)
-        new_bookings = (Booking.objects
-                        .filter(created__range=today_range)
-                        .values("id")
-                        ).count()
 
-        # get incoming guests
+        new_bookings = Booking.objects.filter(created__range=today_range).count()
+
         incoming = (Booking.objects
                     .filter(checkin=today)
                     .exclude(state=Booking.DELETED)
+                    .count())
                     .values("id")
                     ).count()
 
-        # get outcoming guests
         outcoming = (Booking.objects
                      .filter(checkout=today)
                      .exclude(state=Booking.DELETED)
+                     .count())
+
+        invoiced = (Booking.objects
+                    .filter(created__range=today_range)
+                    .exclude(state=Booking.DELETED)
+                    .aggregate(Sum('total')))
+
+        # Calculate occupancy: confirmed bookings (state=NEW) / total rooms
+        total_rooms = Room.objects.count()
+        confirmed_bookings = Booking.objects.filter(state=Booking.NEW).count()
+        occupancy_pct = (confirmed_bookings / total_rooms * 100) if total_rooms > 0 else 0
+
                      .values("id")
                      ).count()
 
@@ -243,11 +278,14 @@ class DashboardView(View):
         context = {
             'dashboard': dashboard
         }
-        return render(request, "dashboard.html", context)
+        return render(request, "dashboard.html", {'dashboard': dashboard})
 
 
 class RoomDetailsView(View):
     def get(self, request, pk):
+        room = get_object_or_404(Room, id=pk)
+        bookings = room.booking_set.all()
+        return render(request, "room_detail.html", {'room': room, 'bookings': bookings})
         # renders room details
         room = get_object_or_404(Room, id=pk)
         bookings = room.booking_set.all()
@@ -265,6 +303,7 @@ class RoomsView(View):
         if query:
             rooms = rooms.filter(name__icontains=query)
         rooms = rooms.values("name", "room_type__name", "id")
+        return render(request, "rooms.html", {'rooms': rooms, 'search_query': query})
         context = {
             'rooms': rooms,
             'search_query': query,
