@@ -52,5 +52,61 @@ services:
       liquibase:
         condition: service_completed_successfully
 
+  sonarqube-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: sonarqube
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar_secret
+    volumes:
+      - sonar_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonarqube"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  sonarqube:
+    image: sonarqube:10-community
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonarqube
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar_secret
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    ports:
+      - "9000:9000"
+    depends_on:
+      sonarqube-db:
+        condition: service_healthy
+
+  sonar-scanner:
+    image: sonarsource/sonar-scanner-cli:5
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+    volumes:
+      - .:/usr/src
+    command: >
+      -Dsonar.projectKey=chapp-booking-engine
+      -Dsonar.sources=pms
+      -Dsonar.tests=pms
+      -Dsonar.test.inclusions=**/tests.py
+      -Dsonar.exclusions=**/migrations/**,**/statics/**,**/templates/**
+      -Dsonar.python.coverage.reportPaths=coverage.xml
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.login=admin
+      -Dsonar.password=admin
+    depends_on:
+      sonarqube:
+        condition: service_started
+    profiles:
+      - scan
+
 volumes:
   pg_data:
+  sonar_pg_data:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:
