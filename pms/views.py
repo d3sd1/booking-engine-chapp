@@ -1,5 +1,6 @@
 from datetime import date, datetime, time
 
+from django.contrib import messages
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.decorators import method_decorator
@@ -85,6 +86,7 @@ class BookingView(View):
             checkin = request.POST.get('booking-checkin')
             checkout = request.POST.get('booking-checkout')
             if not is_room_available(room, checkin, checkout):
+                messages.error(request, 'No hay disponibilidad para las fechas seleccionadas.')
                 return redirect('/')
 
             customer = customer_form.save()
